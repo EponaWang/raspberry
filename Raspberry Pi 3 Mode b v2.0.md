@@ -126,6 +126,32 @@ sudo gdebi teamviewer-host_armhf.deb
 
 今まで、ライスパイの設定は完了した。
 
+## 2.5 TeamViewer エラー
+
+使用中のIDは空の原因：ライスパイ側のバージョンが古いです。
+
+解決方法：
+
+- 古いバージョンをアンインストールして
+
+  `sudo apt-get remove teamviewer-host`
+
+  `sudo apt autoremove`
+
+- 新しいバージョンをインストール（ライスパイのブラウザ）
+
+  `https://www.teamviewer.cn/cn/download/linux/`でLinuxを選択して、下の`TeamViewer Host`で
+
+  `Raspbian armv7 32bit`をダウンロードする
+
+  パス`/home/pi/Downloads`
+
+  `sudo dpkg -i ダウンロードファイル名_armhf.deb`
+
+  `sudo apt-get install`
+
+  `sudo apt-get install gdebi`
+
 # 3. GPIOの制御
 
 ```python
@@ -205,7 +231,7 @@ if __name__ == '__main__':
 ```python
 # Bluetooth機能 (BLE機能は別のライブラリが必要)
 sudo apt-get install libbluetooth-dev
-sudo pip install pybluez
+sudo python3 -m pip install pybluez
 ```
 
 ```python
@@ -216,6 +242,16 @@ cd bluepy
 python3 setup.py build
 sudo python3 setup.py install
 ```
+
+ブルートゥースのGUIパッケージをインストールする
+
+`sudo apt install bluetooth pi-bluetooth bluez blueman`
+
+`sudo usermod -G bluetooth -a pi`
+
+再起動すると、上のパネルでブルートゥースのアイコンが表示される
+
+アイコンを右クリックして、アタブターを選択して、常に表示を設定する
 
 
 ```python
@@ -287,42 +323,79 @@ for dev in devices:
         print("  %s = %s" % (desc, value))
 ```
 
+## 5.2 Config ファイルの修正
 
+`sudo nano /etc/systemd/system/dbus-org.bluez.service`
 
-## 5.2 通信(未確認)
+```
+[Service]
+Type=dbus
+BusName=org.bluez
+ExecStart=/usr/lib/bluetooth/bluetoothd -C
+ExecStartPost=/usr/bin/sdptool add SP
+NotifyAccess=main
+```
+
+再起動 `sudo reboot`
+
+## 5.3 Pair And Connect
+
+コマンドプロンプトで入力
+
+- 起動bluetoothctl `bluttoothctl`
+- 電源をON `power on`
+- 接続できるブルートゥースのリスト `devices`
+- デバイスの検測 `scan on`
+- `agent on`
+- Pair `pair <mac address>` eg `pair 01:02:03:04:05:06`
+- デバイスを信頼する `trust <mac address>`
+- 接続 `connect <mac address>`
+- ヘルプ `help`
+
+## 5.3 通信(未確認)
 
 在pybluez中，先用discover devices函数扫描附近设备，然后调用find services函数扫描设备提供的服务。一般来说都会有rfcomm协议的服务。在树莓派上建立rfcomm的socket，然后连接相应服务的端口号(我选用的是端最小端口号，服务类型任意)。在socket请求连接的过程中，树莓派与远端设备会自然发生配对，手动确认配对即可。
 
+linux Kill python
+
+`sudo pkill python`
+
 ```python
 # RFCOMM 通信
-# server
 import bluetooth
- 
-server_sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
- 
-port = 1
-server_sock.bind(("",port))
-server_sock.listen(1)
- 
-client_sock,address = server_sock.accept()
-print "Accepted connection from ",address
- 
-data = client_sock.recv(1024)
-print "received [%s]" % data
- 
-client_sock.close()
-server_sock.close()
+import time
+
+server_sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+port = 1	#设置端口号
+server_sock.bind(("", port))	#绑定地址和端口
+server_sock.listen(1)	#绑定监听，最大挂起连接数为1
+if __name__ =='__main__':
+    try:
+        while True:
+            print('正在等待接收数据。。。')
+            client_sock,address=server_sock.accept()  #阻塞等待连接
+            print('连接成功')
+            print("Accepted connection from ", address)
+            time.sleep(1)
+            while True:
+                data =client_sock.recv(1024).decode() #不断接收数据，每次接收缓冲区1024字节
+                print("received [%s]" % data)
+                time.sleep(1)
+    except:
+        client_sock.close()
+        server_sock.close()
+        print('disconnect!')
 ```
 
 ```python
 # client
 import bluetooth
- 
-bd_addr = "01:23:45:67:89:AB"
- 
+
+bd_addr = "B8:27:EB:FE:04:87"
+
 port = 1
- 
-sock=bluetooth.BluetoothSocket( bluetooth.RFCOMM )
+
+sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
 sock.connect((bd_addr, port))
  
 sock.send("hello!!")
