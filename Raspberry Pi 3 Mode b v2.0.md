@@ -371,9 +371,9 @@ server_sock.listen(1)	#绑定监听，最大挂起连接数为1
 if __name__ =='__main__':
     while True:
         try:
-            print('正在等待接收数据。。。')
+            print('waiting to receive data.')
             client_sock,address=server_sock.accept()  #阻塞等待连接
-            print('连接成功')
+            print('connect success')
             print("Accepted connection from ", address)
             while True:
                 data =client_sock.recv(1024).decode() #不断接收数据，每次接收缓冲区1024字节
@@ -400,6 +400,14 @@ sock.send("hello!!")
  
 sock.close()
 ```
+
+client : 今回アンドロイドのbluetoothserial を使っている
+
+接続後送受信：
+
+![image-20210622003329714](C:\Users\epona\AppData\Roaming\Typora\typora-user-images\image-20210622003329714.png)
+
+
 
 # 6. 起動できない原因
 
