@@ -432,7 +432,7 @@ client : 今回アンドロイドのbluetoothserial を使っている（iPhone�
 
 [インストールとリモート制御など](https://github.com/TommyZihao/ZihaoTutorialOfRaspberryPi)
 
-[GPIO制御]('https://qiita.com/masato/items/715e28e0c0c945a54297 )
+[GPIO制御](https://qiita.com/masato/items/715e28e0c0c945a54297)
 
 [WIFI接続](https://www.cnblogs.com/hotwater99/p/12760261.html)
 
