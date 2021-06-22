@@ -12,7 +12,7 @@
 
 ## 1.1 [Download for Windows](https://www.raspberrypi.org/software/)
 
-![image-20210617132619391](../../AppData/Roaming/Typora/typora-user-images/image-20210617132619391.png)
+![image-20210617132619391](https://cdn.jsdelivr.net/gh/EponaWang/MyImage@latest/blog-images/image-20210617132619391.png)
 
 ## 1.2 SDカードに書き込む
 
@@ -400,6 +400,8 @@ sock.send("hello!!")
  
 sock.close()
 ```
+
+
 
 client : 今回アンドロイドのbluetoothserial を使っている（iPhoneはうまくできない、原因がわからない）
 
