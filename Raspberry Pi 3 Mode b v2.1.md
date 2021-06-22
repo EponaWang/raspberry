@@ -1,5 +1,7 @@
 [TOC]
 
+> 作成時間：2021-6-22
+
 # 1. OS Install 
 
 > 二つの方法がある、一つ目は下記のURLで`imager_x.x.x.exe`をダウンロードして、実行する。
@@ -122,7 +124,7 @@ sudo gdebi teamviewer-host_armhf.deb
 
 インストール完了、登録して、IDを記録する。（後は、IDをPC側のteamviewerに入力して、ライスパイを制御できる）
 
-![image-20210617140546980](../../AppData/Roaming/Typora/typora-user-images/image-20210617140546980.png)
+![image-20210617005510435](https://raw.githubusercontent.com/EponaWang/MyImage/main/img/20210622005702.png)
 
 今まで、ライスパイの設定は完了した。
 
@@ -220,13 +222,9 @@ if __name__ == '__main__':
 
 # 5. Bluetooth
 
-## 5.1 Scan
+## 5.1 準備
 
-> ファイル名は`bluetooth.py`の名前を設定しないでください。
->
-> ライブラリのファイル名と同じにすれば、うまく動かない。
-
-パッケージをインストール
+1. Bluetooth パッケージをインストールする
 
 ```python
 # Bluetooth機能 (BLE機能は別のライブラリが必要)
@@ -243,7 +241,7 @@ python3 setup.py build
 sudo python3 setup.py install
 ```
 
-ブルートゥースのGUIパッケージをインストールする
+2. Bluetooth のGUIパッケージをインストールする
 
 `sudo apt install bluetooth pi-bluetooth bluez blueman`
 
@@ -252,6 +250,27 @@ sudo python3 setup.py install
 再起動すると、上のパネルでブルートゥースのアイコンが表示される
 
 アイコンを右クリックして、アタブターを選択して、常に表示を設定する
+
+3. Config ファイルの修正
+
+`sudo nano /etc/systemd/system/dbus-org.bluez.service`
+
+```
+[Service]
+Type=dbus
+BusName=org.bluez
+ExecStart=/usr/lib/bluetooth/bluetoothd -C
+ExecStartPost=/usr/bin/sdptool add SP
+NotifyAccess=main
+```
+
+再起動 `sudo reboot`
+
+## 5.2 Scan
+
+> ファイル名は`bluetooth.py`の名前を設定しないでください。
+>
+> ライブラリのファイル名と同じにすれば、うまく動かない。
 
 
 ```python
@@ -323,21 +342,6 @@ for dev in devices:
         print("  %s = %s" % (desc, value))
 ```
 
-## 5.2 Config ファイルの修正
-
-`sudo nano /etc/systemd/system/dbus-org.bluez.service`
-
-```
-[Service]
-Type=dbus
-BusName=org.bluez
-ExecStart=/usr/lib/bluetooth/bluetoothd -C
-ExecStartPost=/usr/bin/sdptool add SP
-NotifyAccess=main
-```
-
-再起動 `sudo reboot`
-
 ## 5.3 Pair And Connect
 
 コマンドプロンプトで入力
@@ -352,38 +356,34 @@ NotifyAccess=main
 - 接続 `connect <mac address>`
 - ヘルプ `help`
 
-## 5.3 通信(未確認)
-
-在pybluez中，先用discover devices函数扫描附近设备，然后调用find services函数扫描设备提供的服务。一般来说都会有rfcomm协议的服务。在树莓派上建立rfcomm的socket，然后连接相应服务的端口号(我选用的是端最小端口号，服务类型任意)。在socket请求连接的过程中，树莓派与远端设备会自然发生配对，手动确认配对即可。
-
-linux Kill python
-
-`sudo pkill python`
+## 5.4 通信
 
 ```python
-# RFCOMM 通信
+# RFCOMM 通信 server
 import bluetooth
 
 server_sock=bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-port = 1	#设置端口号
-server_sock.bind(("", port))	#绑定地址和端口
-server_sock.listen(1)	#绑定监听，最大挂起连接数为1
+port = 1	#ポート設定
+server_sock.bind(("", port))	
+server_sock.listen(1)	
 if __name__ =='__main__':
     while True:
         try:
-            print('正在等待接收数据。。。')
-            client_sock,address=server_sock.accept()  #阻塞等待连接
-            print('连接成功')
+            print('waiting to receive data.')
+            client_sock,address=server_sock.accept()  # waiting to connect
+            print('connect success')
             print("Accepted connection from ", address)
             while True:
-                data =client_sock.recv(1024).decode() #不断接收数据，每次接收缓冲区1024字节
+                data =client_sock.recv(1024).decode() 
                 if data == '':
-                    break		#接收到空字符表示客户端已经断开连接了
-                print("received [%s]" % data)               
+                    break		# disconnect
+                print("received [%s]" % data)
+                client_sock.send(data)
         except: 
             print('disconnect!')
-            continue	#报错后返回阻塞等待连接的状态
+            continue	# return waiting to connect
 ```
+
 
 ```python
 # client
@@ -400,6 +400,20 @@ sock.send("hello!!")
  
 sock.close()
 ```
+
+client : 今回アンドロイドのbluetoothserial を使っている（iPhoneはうまくできない、原因がわからない）
+
+接続後送受信：
+
+![image-20210622003329714](https://raw.githubusercontent.com/EponaWang/MyImage/main/img/20210622005258.png)
+
+
+
+## 5.5 Kill python command 
+
+- `sudo pkill python`
+
+- `ps aux | grep python`     `kill -9 the processの番号`
 
 # 6. 起動できない原因
 
@@ -423,4 +437,6 @@ sock.close()
 [Bluetooth Low Energy 機能](https://www.cnblogs.com/zjutlitao/p/10171913.html)
 
 [Bluetooth Scanと通信](https://blog.csdn.net/zym326975/article/details/93897096)
+
+[Bluetooth を使って、スマホと通信する](https://www.jianshu.com/p/14ef6f207b7a)
 
